@@ -20,6 +20,7 @@ let currentFiles = [];
 let currentThemeDigest = '';
 let currentThemeSize = 0;
 let currentThemeAssetName = '';
+let pendingSiteThemeFallback = null;
 
 const listeners = new Set();
 const optionsRef = {
@@ -415,6 +416,25 @@ function setBusy(value) {
     });
 }
 
+function getCurrentThemePackValue() {
+  try {
+    return optionsRef.getCurrentThemePack ? sanitizeThemeSlug(optionsRef.getCurrentThemePack()) : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function clearPendingSiteThemeFallback(options = {}) {
+  const pending = pendingSiteThemeFallback;
+  pendingSiteThemeFallback = null;
+  if (!pending || options.keep === true) return;
+  if (typeof optionsRef.setSiteThemePack !== 'function') return;
+  const current = getCurrentThemePackValue();
+  if (!current || current === pending.to) {
+    try { optionsRef.setSiteThemePack(pending.from); } catch (_) {}
+  }
+}
+
 function applySummary(summary, files, meta = {}) {
   currentSummary = Array.isArray(summary) ? summary.slice() : [];
   currentFiles = Array.isArray(files) ? files.slice() : [];
@@ -587,6 +607,7 @@ function registryCommitFile(registry) {
 }
 
 async function stageThemeArchive(buffer, fileName, options = {}) {
+  clearPendingSiteThemeFallback();
   const releaseManifest = options.releaseManifest || null;
   if (releaseManifest) {
     await verifyThemeAsset(buffer, releaseManifest.asset, releaseManifest.asset.name);
@@ -659,6 +680,7 @@ async function stageCatalogTheme(catalogEntry) {
 }
 
 export async function stageThemeUninstall(slug) {
+  clearPendingSiteThemeFallback();
   const value = sanitizeThemeSlug(slug);
   const registry = await loadRegistry({ force: true });
   const entry = registry.find((item) => item.value === value);
@@ -679,8 +701,9 @@ export async function stageThemeUninstall(slug) {
   const nextRegistry = registry.filter((item) => item.value !== value);
   files.push(registryCommitFile(nextRegistry));
   try {
-    const current = optionsRef.getCurrentThemePack ? sanitizeThemeSlug(optionsRef.getCurrentThemePack()) : '';
+    const current = getCurrentThemePackValue();
     if (current === value && typeof optionsRef.setSiteThemePack === 'function') {
+      pendingSiteThemeFallback = { from: current, to: 'native' };
       optionsRef.setSiteThemePack('native');
     }
   } catch (_) {}
@@ -954,6 +977,7 @@ export function getThemeManagerCommitFiles() {
 }
 
 export function clearThemeManagerState(options = {}) {
+  clearPendingSiteThemeFallback({ keep: options && options.keepSiteThemeFallback === true });
   applySummary([], []);
   currentThemeDigest = '';
   currentThemeSize = 0;

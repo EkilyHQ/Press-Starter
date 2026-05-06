@@ -5246,7 +5246,7 @@ function applyLocalPostCommitState(files = []) {
     else if (file.kind === 'system') {
       if (file.category === 'theme') {
         if (!clearedThemeManager) {
-          clearThemeManagerState({ keepStatus: false, keepRegistryCache: true });
+          clearThemeManagerState({ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true });
           clearedThemeManager = true;
         }
       } else if (!clearedSystem) {
