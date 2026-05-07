@@ -10,6 +10,11 @@ const THEME_ARCHIVE_ALLOWED_EXTENSIONS = new Set([
   '.png', '.svg', '.ttf', '.txt', '.webp', '.woff', '.woff2'
 ]);
 const THEME_TEXT_EXTENSIONS = new Set(['.css', '.js', '.json', '.mjs', '.svg', '.txt']);
+const REQUIRED_THEME_VIEWS = ['post', 'posts', 'search', 'tab'];
+const OPTIONAL_THEME_VIEWS = ['error', 'loading'];
+const REQUIRED_THEME_REGIONS = ['main', 'toc', 'search', 'nav', 'tags', 'footer'];
+const REQUIRED_THEME_COMPONENTS = ['press-search', 'press-toc', 'press-post-card'];
+const REQUIRED_THEME_CONTENT_SHAPES = ['rawMarkdown', 'html', 'blocks', 'tocTree', 'headings', 'metadata', 'assets', 'links'];
 
 let initialized = false;
 let busy = false;
@@ -82,18 +87,6 @@ function safeString(value) {
   return value == null ? '' : String(value);
 }
 
-function formatSize(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let size = bytes;
-  let unit = 0;
-  while (size >= 1024 && unit < units.length - 1) {
-    size /= 1024;
-    unit += 1;
-  }
-  return `${unit === 0 ? Math.round(size) : size.toFixed(1)} ${units[unit]}`;
-}
-
 function extname(path) {
   const clean = safeString(path).toLowerCase();
   const last = clean.split('/').pop() || '';
@@ -134,7 +127,7 @@ export function normalizeThemeFilePath(path) {
   }
   const clean = raw.replace(/^\/+/, '');
   const parts = clean.split('/');
-  if (parts.some((part) => part === '..' || part === '.')) {
+  if (parts.some((part) => !part || part === '..' || part === '.')) {
     throw new Error(`Unsafe theme archive path: ${raw}`);
   }
   if (clean !== 'theme.json' && clean.endsWith('/theme.json')) {
@@ -144,6 +137,19 @@ export function normalizeThemeFilePath(path) {
     throw new Error(`Unsupported theme archive file type: ${clean}`);
   }
   return clean;
+}
+
+function validateRawThemeArchivePath(path) {
+  const raw = safeString(path).replace(/\\+/g, '/');
+  if (!raw || raw.endsWith('/')) return '';
+  if (raw.startsWith('/') || /^[a-z]:\//i.test(raw) || /^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) {
+    throw new Error(`Unsafe theme archive path: ${raw}`);
+  }
+  const parts = raw.split('/');
+  if (parts.some((part) => !part || part === '..' || part === '.')) {
+    throw new Error(`Unsafe theme archive path: ${raw}`);
+  }
+  return raw;
 }
 
 function stripCommonArchiveRoot(entries) {
@@ -167,6 +173,108 @@ function normalizeFileList(files) {
   });
   normalized.sort((a, b) => a.localeCompare(b));
   return normalized;
+}
+
+function requireThemeObject(value, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Theme manifest ${label} must be an object.`);
+  }
+  return value;
+}
+
+function requireThemeString(value, label) {
+  const text = safeString(value).trim();
+  if (!text) throw new Error(`Theme manifest ${label} is required.`);
+  return text;
+}
+
+function requireThemeStringList(owner, key, label) {
+  if (!Array.isArray(owner && owner[key])) {
+    throw new Error(`Theme manifest ${label} must be an array.`);
+  }
+  const seen = new Set();
+  return owner[key].map((item) => {
+    const value = requireThemeString(item, label);
+    if (seen.has(value)) throw new Error(`Theme manifest ${label} contains duplicate value: ${value}`);
+    seen.add(value);
+    return value;
+  });
+}
+
+function validateThemeManifestFiles(themeManifest, availablePaths) {
+  let styles = [];
+  if (themeManifest.styles != null) {
+    styles = requireThemeStringList(themeManifest, 'styles', 'styles');
+  }
+  if (!styles.length) styles = ['theme.css'];
+  const modules = requireThemeStringList(themeManifest, 'modules', 'modules');
+  if (!modules.length) throw new Error('Theme manifest modules must not be empty.');
+
+  const normalizedModules = new Set();
+  styles.forEach((entry) => {
+    const path = normalizeThemeFilePath(entry);
+    if (extname(path) !== '.css') throw new Error(`Theme manifest styles entry must be a CSS file: ${entry}`);
+    if (!availablePaths.has(path)) throw new Error(`Theme manifest styles references missing file: ${path}`);
+  });
+  modules.forEach((entry) => {
+    const path = normalizeThemeFilePath(entry);
+    if (extname(path) !== '.js') throw new Error(`Theme manifest modules entry must be a JS file: ${entry}`);
+    if (!availablePaths.has(path)) throw new Error(`Theme manifest modules references missing file: ${path}`);
+    normalizedModules.add(path);
+  });
+  return normalizedModules;
+}
+
+function validateThemeViewDeclaration(views, view, modules) {
+  const declaration = requireThemeObject(views[view], `views.${view}`);
+  const modulePath = normalizeThemeFilePath(requireThemeString(declaration.module, `views.${view}.module`));
+  requireThemeString(declaration.handler, `views.${view}.handler`);
+  if (!modules.has(modulePath)) {
+    throw new Error(`Theme manifest views.${view}.module must be listed in modules: ${modulePath}`);
+  }
+}
+
+function validateThemeManifestContract(themeManifest, availablePaths) {
+  requireThemeObject(themeManifest, 'theme.json');
+  requireThemeString(themeManifest.name, 'name');
+  requireThemeString(themeManifest.version, 'version');
+  const contractVersion = Number(themeManifest.contractVersion);
+  if (contractVersion !== REQUIRED_CONTRACT_VERSION) {
+    throw new Error(`Theme contractVersion ${contractVersion || '(missing)'} is not supported.`);
+  }
+
+  const modules = validateThemeManifestFiles(themeManifest, availablePaths);
+  if (themeManifest.views != null) {
+    const views = requireThemeObject(themeManifest.views, 'views');
+    REQUIRED_THEME_VIEWS.forEach((view) => {
+      validateThemeViewDeclaration(views, view, modules);
+    });
+    OPTIONAL_THEME_VIEWS.forEach((view) => {
+      if (views[view] != null) validateThemeViewDeclaration(views, view, modules);
+    });
+  }
+
+  const regions = requireThemeObject(themeManifest.regions, 'regions');
+  REQUIRED_THEME_REGIONS.forEach((region) => {
+    requireThemeObject(regions[region], `regions.${region}`);
+  });
+
+  const components = new Set(requireThemeStringList(themeManifest, 'components', 'components'));
+  REQUIRED_THEME_COMPONENTS.forEach((component) => {
+    if (!components.has(component)) throw new Error(`Theme manifest components must include ${component}.`);
+  });
+
+  if (!Object.prototype.hasOwnProperty.call(themeManifest, 'scrollContainer')) {
+    throw new Error('Theme manifest scrollContainer is required.');
+  }
+  requireThemeObject(themeManifest.configSchema, 'configSchema');
+  const content = requireThemeObject(themeManifest.content, 'content');
+  const shapes = new Set(requireThemeStringList(content, 'shapes', 'content.shapes'));
+  REQUIRED_THEME_CONTENT_SHAPES.forEach((shape) => {
+    if (!shapes.has(shape)) throw new Error(`Theme manifest content.shapes must include ${shape}.`);
+  });
+
+  return contractVersion;
 }
 
 function normalizeRegistrySource(input, fallbackType) {
@@ -316,15 +424,16 @@ export function collectThemeArchiveEntries(buffer, options = {}) {
   const rawEntries = names
     .map((name) => ({
       raw: name,
-      path: safeString(name).replace(/\\+/g, '/'),
+      path: validateRawThemeArchivePath(name),
       data: archive[name]
     }))
-    .filter((item) => item.path && !item.path.endsWith('/') && item.data && item.data.length);
+    .filter((item) => item.path && !item.path.endsWith('/') && item.data);
   const strippedPaths = stripCommonArchiveRoot(rawEntries.map((entry) => entry.path));
   const entries = rawEntries.map((entry, index) => {
     const path = normalizeThemeFilePath(strippedPaths[index]);
     return { path, data: entry.data };
   }).filter((entry) => entry.path);
+  const availablePaths = new Set(entries.map((entry) => entry.path));
 
   if (!entries.some((entry) => entry.path === 'theme.json')) {
     throw new Error('Theme ZIP must contain theme.json at the theme root.');
@@ -344,10 +453,7 @@ export function collectThemeArchiveEntries(buffer, options = {}) {
   if (options.expectedSlug && slug !== sanitizeThemeSlug(options.expectedSlug)) {
     throw new Error('Theme ZIP slug does not match the selected release manifest.');
   }
-  const contractVersion = Number(themeManifest.contractVersion);
-  if (contractVersion !== REQUIRED_CONTRACT_VERSION) {
-    throw new Error(`Theme contractVersion ${contractVersion || '(missing)'} is not supported.`);
-  }
+  const contractVersion = validateThemeManifestContract(themeManifest, availablePaths);
 
   const seen = new Set();
   const normalizedEntries = entries.map((entry) => {
@@ -459,6 +565,94 @@ async function fetchText(path) {
   }
 }
 
+async function fetchExists(path) {
+  try {
+    const response = await fetch(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
+    return !!(response && response.ok);
+  } catch (_) {
+    return false;
+  }
+}
+
+function themeFilesFromManifest(manifest) {
+  const files = [];
+  const add = (value) => {
+    if (typeof value !== 'string') return;
+    try {
+      const normalized = normalizeThemeFilePath(value);
+      if (normalized) files.push(normalized);
+    } catch (_) {}
+  };
+  const addList = (list) => {
+    (Array.isArray(list) ? list : []).forEach(add);
+  };
+
+  add('theme.json');
+  const styles = manifest && Array.isArray(manifest.styles)
+    ? manifest.styles.map((entry) => safeString(entry).trim()).filter(Boolean)
+    : [];
+  if (styles.length) addList(styles);
+  else add('theme.css');
+  addList(manifest && manifest.modules);
+  addList(manifest && manifest.files);
+
+  const views = manifest && manifest.views && typeof manifest.views === 'object' ? manifest.views : {};
+  Object.values(views).forEach((view) => {
+    if (view && typeof view === 'object') add(view.module);
+  });
+
+  return normalizeFileList(files);
+}
+
+async function filterExistingThemeFiles(slug, files, options = {}) {
+  const normalized = normalizeFileList(files);
+  const existing = [];
+  const assumeThemeJsonExists = options.assumeThemeJsonExists === true;
+  for (const relPath of normalized) {
+    if (relPath === 'theme.json' && assumeThemeJsonExists) {
+      existing.push(relPath);
+      continue;
+    }
+    if (await fetchExists(themeCommitPath(slug, relPath))) existing.push(relPath);
+  }
+  return existing;
+}
+
+async function inferLocalThemeFiles(slug) {
+  try {
+    const manifestPath = themeCommitPath(slug, 'theme.json');
+    const existing = await fetchText(manifestPath);
+    if (!existing.exists || !existing.content) return [];
+    return await filterExistingThemeFiles(slug, themeFilesFromManifest(JSON.parse(existing.content)), { assumeThemeJsonExists: true });
+  } catch (_) {
+    return [];
+  }
+}
+
+async function inferCatalogThemeFiles(slug) {
+  try {
+    const catalog = await loadCatalog();
+    const entry = catalog.find((item) => item.value === slug);
+    if (!entry || !entry.manifestUrl) return [];
+    const manifest = normalizeThemeReleaseManifest(await fetchJson(entry.manifestUrl));
+    return await filterExistingThemeFiles(slug, manifest.files);
+  } catch (_) {
+    return [];
+  }
+}
+
+async function resolveThemeFileInventory(entry) {
+  if (!entry || !entry.value) return [];
+  const value = sanitizeThemeSlug(entry.value);
+  const explicit = normalizeFileList(entry.files);
+  if (explicit.length) return await filterExistingThemeFiles(value, explicit);
+  const local = await inferLocalThemeFiles(value);
+  if (local.length) return local;
+  const catalog = await inferCatalogThemeFiles(value);
+  if (catalog.length) return catalog;
+  return [];
+}
+
 async function fetchBase64(path) {
   try {
     const response = await fetch(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
@@ -476,7 +670,12 @@ async function loadRegistry(options = {}) {
     const response = await fetch('assets/themes/packs.json', { cache: 'no-store' });
     if (!response || !response.ok) throw new Error('Unable to load installed themes.');
     data = await response.json();
-  } catch (_) {
+  } catch (err) {
+    if (options.allowFallback === false) {
+      const error = new Error('Unable to load installed theme registry. Theme changes were not staged.');
+      error.cause = err;
+      throw error;
+    }
     data = [{ value: 'native', label: 'Native', builtIn: true, removable: false, source: { type: 'builtin' }, files: [] }];
   }
   registryCache = normalizeThemeRegistry(data);
@@ -524,7 +723,7 @@ function makeRegistryEntry({ archive, previous, releaseManifest, source, assetMe
 
 async function buildThemeFileChanges(archive, previousEntry) {
   const changes = [];
-  const oldFiles = new Set(normalizeFileList(previousEntry && previousEntry.files));
+  const oldFiles = new Set(await resolveThemeFileInventory(previousEntry));
   const newFiles = new Set(archive.files.map((file) => file.path));
   for (const file of archive.files) {
     const path = themeCommitPath(archive.slug, file.path);
@@ -607,7 +806,6 @@ function registryCommitFile(registry) {
 }
 
 async function stageThemeArchive(buffer, fileName, options = {}) {
-  clearPendingSiteThemeFallback();
   const releaseManifest = options.releaseManifest || null;
   if (releaseManifest) {
     await verifyThemeAsset(buffer, releaseManifest.asset, releaseManifest.asset.name);
@@ -617,7 +815,7 @@ async function stageThemeArchive(buffer, fileName, options = {}) {
   if (releaseManifest && archive.version && archive.version !== releaseManifest.version) {
     throw new Error('Theme ZIP theme.json version does not match the release manifest.');
   }
-  const registry = await loadRegistry({ force: true });
+  const registry = await loadRegistry({ force: true, allowFallback: false });
   const previous = registry.find((entry) => entry.value === archive.slug) || null;
   if (previous && previous.builtIn && !options.allowBuiltInUpdate) {
     throw new Error('Built-in themes are updated only by Press system updates.');
@@ -646,6 +844,7 @@ async function stageThemeArchive(buffer, fileName, options = {}) {
   }));
   registryCache = nextRegistry;
   applySummary(summary, fileChanges, { digest: `sha256:${digest}`, size: buffer.byteLength, assetName: assetMeta.assetName });
+  clearPendingSiteThemeFallback();
   setStatus(`${previous ? 'Updated' : 'Installed'} ${nextEntry.label}. Review and publish the staged theme files.`, { tone: 'success' });
   renderThemeManager();
   return { archive, registry: nextRegistry, files: fileChanges };
@@ -682,11 +881,15 @@ async function stageCatalogTheme(catalogEntry) {
 export async function stageThemeUninstall(slug) {
   clearPendingSiteThemeFallback();
   const value = sanitizeThemeSlug(slug);
-  const registry = await loadRegistry({ force: true });
+  const registry = await loadRegistry({ force: true, allowFallback: false });
   const entry = registry.find((item) => item.value === value);
   if (!entry) throw new Error(`Theme ${value} is not installed.`);
   if (entry.builtIn || entry.removable === false) throw new Error('Built-in themes cannot be uninstalled.');
-  const files = normalizeFileList(entry.files).map((relPath) => {
+  const inventory = await resolveThemeFileInventory(entry);
+  if (!inventory.length) {
+    throw new Error(`Theme ${entry.label || value} has no file inventory. Reinstall or update it before uninstalling.`);
+  }
+  const files = inventory.map((relPath) => {
     const path = themeCommitPath(value, relPath);
     return {
       kind: 'system',
@@ -887,7 +1090,7 @@ function setActiveThemeManagerView(view) {
   }
 }
 
-async function handleImportFile(file) {
+export async function handleImportFile(file) {
   if (!file) return;
   setBusy(true);
   try {
@@ -897,7 +1100,6 @@ async function handleImportFile(file) {
     setActiveThemeManagerView('installed');
   } catch (err) {
     console.error('Theme import failed', err);
-    applySummary([], []);
     setStatus(err && err.message ? err.message : 'Theme import failed.', { tone: 'error' });
   } finally {
     setBusy(false);

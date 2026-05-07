@@ -1,0 +1,161 @@
+name: Sync From Press Release
+
+on:
+  repository_dispatch:
+    types:
+      - press-system-release
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Press release tag to sync, for example v3.4.0. Leave empty for latest.
+        required: false
+  schedule:
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-from-press-release
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      PRESS_REPOSITORY: ${{ vars.PRESS_REPOSITORY || 'EkilyHQ/Press' }}
+      INPUT_TAG: ${{ inputs.tag }}
+      DISPATCH_TAG: ${{ github.event.client_payload.tag }}
+      DISPATCH_ASSET_NAME: ${{ github.event.client_payload.asset_name }}
+      DISPATCH_ASSET_SIZE: ${{ github.event.client_payload.asset_size }}
+      DISPATCH_ASSET_SHA256: ${{ github.event.client_payload.asset_sha256 }}
+      PRESS_RELEASE_TOKEN: ${{ secrets.PRESS_RELEASE_TOKEN || github.token }}
+    steps:
+      - name: Checkout Starter
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve Press release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.PRESS_RELEASE_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+
+          tag="${INPUT_TAG:-${DISPATCH_TAG:-}}"
+          if [[ -n "${tag}" ]]; then
+            gh api "repos/${PRESS_REPOSITORY}/releases/tags/${tag}" > dist/press-release.json
+          else
+            gh api "repos/${PRESS_REPOSITORY}/releases/latest" > dist/press-release.json
+          fi
+
+          export DISPATCH_ASSET_NAME DISPATCH_ASSET_SIZE DISPATCH_ASSET_SHA256
+          node <<'NODE' > dist/press-release-env.txt
+          const fs = require('fs');
+          const release = JSON.parse(fs.readFileSync('dist/press-release.json', 'utf8'));
+          const payloadName = process.env.DISPATCH_ASSET_NAME || '';
+          const assets = Array.isArray(release.assets) ? release.assets : [];
+          const candidates = assets.filter((asset) => {
+            const name = String(asset.name || '');
+            if (payloadName) return name === payloadName;
+            return /^press-system-v\d+\.\d+\.\d+\.zip$/.test(name);
+          });
+          if (candidates.length !== 1) {
+            throw new Error(`expected exactly one Press system package asset, found ${candidates.length}`);
+          }
+          const asset = candidates[0];
+          const body = String(release.body || '');
+          const digest = String(asset.digest || process.env.DISPATCH_ASSET_SHA256 || '').replace(/^sha256:/i, '')
+            || ((body.match(/SHA-256:\s*`?([a-fA-F0-9]{64})`?/) || [])[1] || '');
+          const size = Number(asset.size || process.env.DISPATCH_ASSET_SIZE || 0);
+          const lines = [
+            `tag=${release.tag_name || ''}`,
+            `asset_name=${asset.name || ''}`,
+            `asset_url=${asset.browser_download_url || ''}`,
+            `asset_size=${Number.isFinite(size) ? size : 0}`,
+            `asset_sha256=${digest}`,
+            `html_url=${release.html_url || ''}`
+          ];
+          process.stdout.write(`${lines.join('\n')}\n`);
+          NODE
+
+          while IFS='=' read -r key value; do
+            [[ -n "${key}" ]] || continue
+            echo "${key}=${value}" >> "${GITHUB_OUTPUT}"
+          done < dist/press-release-env.txt
+
+      - name: Download Press system package
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --location --silent --show-error \
+            --header "Authorization: Bearer ${PRESS_RELEASE_TOKEN}" \
+            --output dist/press-system.zip \
+            "${{ steps.release.outputs.asset_url }}"
+
+      - name: Sync Starter runtime
+        run: |
+          set -euo pipefail
+          bash scripts/sync-from-press-release.sh \
+            --archive dist/press-system.zip \
+            --tag "${{ steps.release.outputs.tag }}" \
+            --sha256 "${{ steps.release.outputs.asset_sha256 }}" \
+            --size "${{ steps.release.outputs.asset_size }}"
+
+      - name: Validate sync script
+        run: |
+          bash scripts/test-sync-from-press-release.sh
+
+      - name: Open sync pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SYNC_TAG: ${{ steps.release.outputs.tag }}
+          SYNC_ASSET: ${{ steps.release.outputs.asset_name }}
+          SYNC_RELEASE_URL: ${{ steps.release.outputs.html_url }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "Starter is already current with ${SYNC_TAG}."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          safe_tag="$(printf '%s' "${SYNC_TAG}" | tr -c 'A-Za-z0-9._-' '-')"
+          sync_branch="codex/sync-press-${safe_tag}"
+          git checkout -B "${sync_branch}"
+          git add .
+          git commit -m "Sync Press runtime ${SYNC_TAG}"
+          git push --force-with-lease origin "HEAD:${sync_branch}"
+
+          body_file="$(mktemp)"
+          cat > "${body_file}" <<EOF
+          Automated Starter refresh from Press ${SYNC_TAG}.
+
+          Source release: ${SYNC_RELEASE_URL}
+          System package: ${SYNC_ASSET}
+
+          This keeps the template runtime current while preserving Starter-owned files such as site.yaml, wwwroot content, README.md, .nojekyll, and the native-only packs.json registry.
+          EOF
+
+          pr_number="$(
+            gh api \
+              "repos/${GITHUB_REPOSITORY}/pulls?state=open&head=${GITHUB_REPOSITORY_OWNER}:${sync_branch}" \
+              --jq '.[0].number // empty'
+          )"
+          if [[ -n "${pr_number}" ]]; then
+            gh pr edit "${pr_number}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "Sync Press runtime ${SYNC_TAG}" \
+              --body-file "${body_file}"
+          else
+            gh pr create \
+              --repo "${GITHUB_REPOSITORY}" \
+              --base "${GITHUB_REF_NAME}" \
+              --head "${sync_branch}" \
+              --title "Sync Press runtime ${SYNC_TAG}" \
+              --body-file "${body_file}"
+          fi

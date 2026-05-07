@@ -324,16 +324,76 @@ export class PressThemeControls extends HTMLElement {
         this.classList.remove(className);
       }
     });
-    this.classList.add('box', `press-theme-controls--${variant}`);
+    this.classList.remove('box', 'arcus-tools__groups', 'solstice-tools');
+    if (variant === 'arcus') {
+      this.classList.add('arcus-tools__groups', `press-theme-controls--${variant}`);
+    } else if (variant === 'solstice') {
+      this.classList.add('solstice-tools', `press-theme-controls--${variant}`);
+    } else {
+      this.classList.add('box', `press-theme-controls--${variant}`);
+    }
   }
 
   _markup() {
+    const variant = this._variant();
     const sectionTitle = safe(this._label('sectionTitle', 'Tools'));
     const toggleTheme = safe(this._label('toggleTheme', 'Toggle theme'));
     const postEditor = safe(this._label('postEditor', 'Post editor'));
     const themePack = safe(this._label('themePack', 'Theme pack'));
     const language = safe(this._label('language', 'Language'));
     const resetLanguage = safe(this._label('resetLanguage', 'Reset language'));
+    if (variant === 'arcus') {
+      return `
+        <div class="arcus-tools__group" role="group" data-group="theme" aria-label="${toggleTheme} &amp; ${themePack}">
+          <button class="arcus-tool" type="button" data-role="theme-toggle" aria-label="${toggleTheme}">
+            <span class="arcus-tool__icon">&#127769;</span>
+            <span class="arcus-tool__label">${toggleTheme}</span>
+          </button>
+          <label class="arcus-tool arcus-tool--select">
+            <span class="arcus-tool__label">${themePack}</span>
+            <select data-role="theme-pack" aria-label="${themePack}"></select>
+          </label>
+        </div>
+        <div class="arcus-tools__group" role="group" data-group="language" aria-label="${language} &amp; ${resetLanguage}">
+          <label class="arcus-tool arcus-tool--select">
+            <span class="arcus-tool__label">${language}</span>
+            <select data-role="language" aria-label="${language}"></select>
+          </label>
+          <button class="arcus-tool" type="button" data-role="language-reset" aria-label="${resetLanguage}">
+            <span class="arcus-tool__icon">&#9851;</span>
+            <span class="arcus-tool__label">${resetLanguage}</span>
+          </button>
+        </div>
+        <div class="arcus-tools__group arcus-tools__group--solo" role="group" data-group="editor" aria-label="${postEditor}">
+          <button class="arcus-tool" type="button" data-role="post-editor" aria-label="${postEditor}">
+            <span class="arcus-tool__icon">&#128221;</span>
+            <span class="arcus-tool__label">${postEditor}</span>
+          </button>
+        </div>`;
+    }
+    if (variant === 'solstice') {
+      return `
+        <button class="solstice-tool" type="button" data-role="theme-toggle" aria-label="${toggleTheme}">
+          <span class="solstice-tool__icon">&#127769;</span>
+          <span class="solstice-tool__label">${toggleTheme}</span>
+        </button>
+        <button class="solstice-tool" type="button" data-role="post-editor" aria-label="${postEditor}">
+          <span class="solstice-tool__icon">&#128221;</span>
+          <span class="solstice-tool__label">${postEditor}</span>
+        </button>
+        <label class="solstice-tool solstice-tool--select">
+          <span class="solstice-tool__label">${themePack}</span>
+          <select data-role="theme-pack" aria-label="${themePack}"></select>
+        </label>
+        <label class="solstice-tool solstice-tool--select">
+          <span class="solstice-tool__label">${language}</span>
+          <select data-role="language" aria-label="${language}"></select>
+        </label>
+        <button class="solstice-tool" type="button" data-role="language-reset" aria-label="${resetLanguage}">
+          <span class="solstice-tool__icon">&#9851;</span>
+          <span class="solstice-tool__label">${resetLanguage}</span>
+        </button>`;
+    }
     return `
       <div class="section-title">${sectionTitle}</div>
       <div class="tools tools-panel">
