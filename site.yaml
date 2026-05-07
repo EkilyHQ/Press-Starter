@@ -1,11 +1,15 @@
-siteTitle: My Press Site
-siteDescription: Notes and pages published with Press.
+siteTitle: YAP
+siteDescription:
+  en: Yet-another press site for tiny notes, pages, and happy yap yap yap publishing.
+  chs: 一个 yet-another press 小站，用来发布轻巧的文章、页面，还有快乐的 yap yap yap。
+  cht-tw: 一個 yet-another press 小站，用來發布輕巧的文章、頁面，還有快樂的 yap yap yap。
+  cht-hk: 一個 yet-another press 小站，用來發佈輕巧的文章、頁面，還有快樂的 yap yap yap。
+  ja: 小さな記事やページを楽しく yap yap yap と公開する yet-another press サイト。
 contentRoot: wwwroot
-defaultLanguage: en
 themeMode: auto
 themePack: native
 repo:
   provider: github
-  owner: OWNER
-  name: REPOSITORY
+  owner: EkilyHQ
+  name: YAP
   branch: main

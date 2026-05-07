@@ -1,1 +1,8 @@
-{}
+# yaml-language-server: $schema=../assets/schema/index.json
+
+helloYap:
+  en: post/hello-yap/en.md
+  chs: post/hello-yap/chs.md
+  cht-tw: post/hello-yap/cht-tw.md
+  cht-hk: post/hello-yap/cht-hk.md
+  ja: post/hello-yap/ja.md

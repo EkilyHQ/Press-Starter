@@ -138,7 +138,7 @@ while IFS= read -r entry; do
     index.html|index_editor.html|assets/main.js) ;;
     assets/js/*|assets/i18n/*|assets/schema/*|assets/themes/native/*|assets/themes/catalog.json) ;;
     assets/themes/packs.json)
-      echo "system release archive must not provide Starter packs.json" >&2
+      echo "system release archive must not provide YAP packs.json" >&2
       exit 1
       ;;
     *)
@@ -244,4 +244,4 @@ fs.writeFileSync(
 );
 NODE
 
-echo "Synced Press system release ${release_tag:-unknown} into Starter."
+echo "Synced Press system release ${release_tag:-unknown} into YAP."

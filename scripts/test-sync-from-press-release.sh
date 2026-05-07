@@ -49,9 +49,9 @@ archive_size="$(wc -c < "${tmp_dir}/press-system.zip" | tr -d ' ')"
 archive_sha256="$(shasum -a 256 "${tmp_dir}/press-system.zip" | awk '{print $1}')"
 
 cp "${repo_root}/scripts/sync-from-press-release.sh" "${starter_dir}/scripts/sync-from-press-release.sh"
-printf 'starter-owned\n' > "${starter_dir}/site.yaml"
-printf 'starter-owned\n' > "${starter_dir}/wwwroot/index.yaml"
-printf 'starter-owned\n' > "${starter_dir}/.nojekyll"
+printf 'yap-owned\n' > "${starter_dir}/site.yaml"
+printf 'yap-owned\n' > "${starter_dir}/wwwroot/index.yaml"
+printf 'yap-owned\n' > "${starter_dir}/.nojekyll"
 printf 'stale\n' > "${starter_dir}/assets/js/stale.js"
 printf 'stale\n' > "${starter_dir}/assets/themes/native/stale.css"
 printf '[{"value":"arcus","files":["theme.css"]}]\n' > "${starter_dir}/assets/themes/packs.json"
@@ -67,15 +67,15 @@ printf '[{"value":"arcus","files":["theme.css"]}]\n' > "${starter_dir}/assets/th
 )
 
 if [[ ! -f "${starter_dir}/.nojekyll" ]]; then
-  echo "sync must preserve Starter-owned .nojekyll" >&2
+  echo "sync must preserve YAP-owned .nojekyll" >&2
   exit 1
 fi
-if ! grep -qx 'starter-owned' "${starter_dir}/site.yaml"; then
-  echo "sync must preserve Starter-owned site.yaml" >&2
+if ! grep -qx 'yap-owned' "${starter_dir}/site.yaml"; then
+  echo "sync must preserve YAP-owned site.yaml" >&2
   exit 1
 fi
-if ! grep -qx 'starter-owned' "${starter_dir}/wwwroot/index.yaml"; then
-  echo "sync must preserve Starter-owned wwwroot content" >&2
+if ! grep -qx 'yap-owned' "${starter_dir}/wwwroot/index.yaml"; then
+  echo "sync must preserve YAP-owned wwwroot content" >&2
   exit 1
 fi
 if [[ -f "${starter_dir}/assets/js/stale.js" ]]; then
@@ -91,7 +91,7 @@ if ! grep -q '"value": "native"' "${starter_dir}/assets/themes/packs.json"; then
   exit 1
 fi
 if grep -q 'arcus' "${starter_dir}/assets/themes/packs.json"; then
-  echo "sync must not preserve non-native installed registry entries in Starter" >&2
+  echo "sync must not preserve non-native installed registry entries in YAP" >&2
   exit 1
 fi
 if ! grep -q '"theme.css"' "${starter_dir}/assets/themes/packs.json"; then
@@ -115,4 +115,4 @@ if (
   exit 1
 fi
 
-echo "ok - starter sync from Press release"
+echo "ok - YAP sync from Press release"
