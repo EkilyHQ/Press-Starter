@@ -10,7 +10,7 @@
       "type": "builtin"
     },
     "release": {
-      "tag": "v3.3.42"
+      "tag": "v3.3.43"
     },
     "files": [
       "base.css",
