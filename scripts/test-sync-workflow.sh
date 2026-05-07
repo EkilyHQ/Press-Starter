@@ -70,6 +70,11 @@ if ! grep -F 'git status --porcelain' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -Fx 'dist/' .gitignore >/dev/null; then
+  echo "Starter sync workflow scratch files must stay out of commits" >&2
+  exit 1
+fi
+
 if grep -F 'assets/themes/packs.json' "${workflow}" >/dev/null; then
   echo "Starter sync workflow must not copy packs.json directly from Press releases" >&2
   exit 1

@@ -2,6 +2,7 @@
 .vscode/
 .playwright-cli/
 .codex/
+dist/
 
 # Local-only development sandbox
 site.local.yaml
