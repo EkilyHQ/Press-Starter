@@ -8,6 +8,7 @@ siteDescription:
 contentRoot: wwwroot
 themeMode: auto
 themePack: native
+repoAutofillFromPages: true
 repo:
   provider: github
   owner: EkilyHQ
