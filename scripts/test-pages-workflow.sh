@@ -35,6 +35,11 @@ if ! grep -F 'actions/configure-pages@v5' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'enablement: true' "${workflow}" >/dev/null; then
+  echo "Pages workflow must enable Pages for fresh template repositories" >&2
+  exit 1
+fi
+
 if ! grep -F 'actions/upload-pages-artifact@v3' "${workflow}" >/dev/null; then
   echo "Pages workflow must upload a Pages artifact" >&2
   exit 1
