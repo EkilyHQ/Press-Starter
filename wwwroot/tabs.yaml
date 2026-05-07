@@ -1,1 +1,18 @@
-{}
+# yaml-language-server: $schema=../assets/schema/tabs.json
+
+About:
+  en:
+    title: About YAP
+    location: tab/about/en.md
+  chs:
+    title: 关于 YAP
+    location: tab/about/chs.md
+  cht-tw:
+    title: 關於 YAP
+    location: tab/about/cht-tw.md
+  cht-hk:
+    title: 關於 YAP
+    location: tab/about/cht-hk.md
+  ja:
+    title: YAP について
+    location: tab/about/ja.md

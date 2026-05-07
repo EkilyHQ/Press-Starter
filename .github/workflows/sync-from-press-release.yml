@@ -32,7 +32,7 @@ jobs:
       DISPATCH_ASSET_SHA256: ${{ github.event.client_payload.asset_sha256 }}
       PRESS_RELEASE_TOKEN: ${{ secrets.PRESS_RELEASE_TOKEN || github.token }}
     steps:
-      - name: Checkout Starter
+      - name: Checkout YAP
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -95,7 +95,7 @@ jobs:
             --output dist/press-system.zip \
             "${{ steps.release.outputs.asset_url }}"
 
-      - name: Sync Starter runtime
+      - name: Sync YAP runtime
         run: |
           set -euo pipefail
           bash scripts/sync-from-press-release.sh \
@@ -117,7 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "$(git status --porcelain)" ]]; then
-            echo "Starter is already current with ${SYNC_TAG}."
+            echo "YAP is already current with ${SYNC_TAG}."
             exit 0
           fi
 
@@ -133,12 +133,12 @@ jobs:
 
           body_file="$(mktemp)"
           cat > "${body_file}" <<EOF
-          Automated Starter refresh from Press ${SYNC_TAG}.
+          Automated YAP refresh from Press ${SYNC_TAG}.
 
           Source release: ${SYNC_RELEASE_URL}
           System package: ${SYNC_ASSET}
 
-          This keeps the template runtime current while preserving Starter-owned files such as site.yaml, wwwroot content, README.md, .nojekyll, and the native-only packs.json registry.
+          This keeps the template runtime current while preserving YAP-owned files such as site.yaml, wwwroot content, README.md, .nojekyll, and the native-only packs.json registry.
           EOF
 
           pr_number="$(
