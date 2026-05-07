@@ -14,7 +14,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
   group: sync-from-press-release
@@ -35,6 +34,7 @@ jobs:
       - name: Checkout YAP
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
       - name: Resolve Press release
@@ -108,12 +108,9 @@ jobs:
         run: |
           bash scripts/test-sync-from-press-release.sh
 
-      - name: Open sync pull request
+      - name: Commit and push sync to main
         env:
-          GH_TOKEN: ${{ github.token }}
           SYNC_TAG: ${{ steps.release.outputs.tag }}
-          SYNC_ASSET: ${{ steps.release.outputs.asset_name }}
-          SYNC_RELEASE_URL: ${{ steps.release.outputs.html_url }}
         run: |
           set -euo pipefail
           if [[ -z "$(git status --porcelain)" ]]; then
@@ -124,38 +121,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          safe_tag="$(printf '%s' "${SYNC_TAG}" | tr -c 'A-Za-z0-9._-' '-')"
-          sync_branch="codex/sync-press-${safe_tag}"
-          git checkout -B "${sync_branch}"
           git add .
           git commit -m "Sync Press runtime ${SYNC_TAG}"
-          git push --force-with-lease origin "HEAD:${sync_branch}"
-
-          body_file="$(mktemp)"
-          cat > "${body_file}" <<EOF
-          Automated YAP refresh from Press ${SYNC_TAG}.
-
-          Source release: ${SYNC_RELEASE_URL}
-          System package: ${SYNC_ASSET}
-
-          This keeps the template runtime current while preserving YAP-owned files such as site.yaml, wwwroot content, README.md, .nojekyll, and the native-only packs.json registry.
-          EOF
-
-          pr_number="$(
-            gh api \
-              "repos/${GITHUB_REPOSITORY}/pulls?state=open&head=${GITHUB_REPOSITORY_OWNER}:${sync_branch}" \
-              --jq '.[0].number // empty'
-          )"
-          if [[ -n "${pr_number}" ]]; then
-            gh pr edit "${pr_number}" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --title "Sync Press runtime ${SYNC_TAG}" \
-              --body-file "${body_file}"
-          else
-            gh pr create \
-              --repo "${GITHUB_REPOSITORY}" \
-              --base "${GITHUB_REF_NAME}" \
-              --head "${sync_branch}" \
-              --title "Sync Press runtime ${SYNC_TAG}" \
-              --body-file "${body_file}"
-          fi
+          git pull --rebase origin main
+          git push origin HEAD:main

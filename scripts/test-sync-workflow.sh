@@ -41,27 +41,44 @@ if ! grep -F 'scripts/sync-from-press-release.sh' "${workflow}" >/dev/null; then
 fi
 
 if ! grep -F 'scripts/test-sync-from-press-release.sh' "${workflow}" >/dev/null; then
-  echo "YAP sync workflow must validate the sync script before opening a PR" >&2
+  echo "YAP sync workflow must validate the sync script before publishing to main" >&2
   exit 1
 fi
 
-if ! grep -F 'gh pr create' "${workflow}" >/dev/null; then
-  echo "YAP sync workflow must open a pull request for runtime updates" >&2
+if grep -F 'gh pr create' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must not open pull requests for runtime updates" >&2
   exit 1
 fi
 
-if ! grep -F 'gh pr edit "${pr_number}"' "${workflow}" >/dev/null; then
-  echo "YAP sync workflow must update an existing sync pull request" >&2
+if grep -F 'gh pr edit' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must not edit pull requests for runtime updates" >&2
+  exit 1
+fi
+
+if grep -F 'pull-requests: write' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must not request pull request write permissions" >&2
+  exit 1
+fi
+
+if ! grep -F 'git pull --rebase origin main' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must rebase on origin/main before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F 'git push origin HEAD:main' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must publish runtime updates directly to main" >&2
+  exit 1
+fi
+
+test_line="$(grep -nF 'scripts/test-sync-from-press-release.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
+push_line="$(grep -nF 'git push origin HEAD:main' "${workflow}" | head -n 1 | cut -d: -f1)"
+if [[ -z "${test_line}" || -z "${push_line}" || "${test_line}" -ge "${push_line}" ]]; then
+  echo "YAP sync workflow must validate the sync script before pushing to main" >&2
   exit 1
 fi
 
 if ! grep -F 'PRESS_RELEASE_TOKEN' "${workflow}" >/dev/null; then
   echo "YAP sync workflow must support a Press release read token" >&2
-  exit 1
-fi
-
-if ! grep -F 'GH_TOKEN: ${{ github.token }}' "${workflow}" >/dev/null; then
-  echo "YAP sync workflow must use the repository token for YAP pull requests" >&2
   exit 1
 fi
 

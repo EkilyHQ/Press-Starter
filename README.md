@@ -54,10 +54,12 @@ can be triggered by:
 - A scheduled catch-up run.
 
 The workflow downloads the latest `press-system-vX.Y.Z.zip`, verifies its size
-and SHA-256 when available, overlays the system-owned runtime files, and
-regenerates a native-only `assets/themes/packs.json`. YAP-owned files such as
-`.nojekyll`, `site.yaml`, `wwwroot`, `README.md`, and repository metadata are
-preserved.
+and SHA-256 when available, overlays the system-owned runtime files,
+regenerates a native-only `assets/themes/packs.json`, and commits the result
+directly to `main`. YAP-owned files such as `.nojekyll`, `site.yaml`,
+`wwwroot`, `README.md`, and repository metadata are preserved. Because this
+repository publishes from `main` and `/`, each successful runtime sync also
+starts a GitHub Pages publish from the updated template root.
 
 For private Press repositories, configure `PRESS_RELEASE_TOKEN` in this
 repository so the workflow can read Press releases. For event-driven sync from
