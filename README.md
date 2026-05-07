@@ -9,8 +9,9 @@ Use this repository through GitHub's **Use this template** button to create a ne
 1. Use this repository as a template.
 2. Edit `site.yaml` and set `siteTitle`, `siteDescription`, and `repo.owner` / `repo.name`.
 3. Add posts and tabs through `index_editor.html`.
-4. Push changes to `main`; the included Pages workflow publishes the site.
-5. Open the published site and editor from GitHub Pages.
+4. Enable GitHub Pages once with `bash scripts/enable-pages.sh`.
+5. Push changes to `main`; the included Pages workflow publishes the site.
+6. Open the published site and editor from GitHub Pages.
 
 ## Included
 
@@ -26,6 +27,17 @@ New repositories created from this template include `.github/workflows/pages.yml
 The workflow publishes the static site from a curated artifact containing
 `index.html`, `index_editor.html`, `site.yaml`, `.nojekyll`, `assets/`, and
 `wwwroot/`. No separate build step is required.
+
+GitHub does not let a copied workflow's default `GITHUB_TOKEN` create the Pages
+site for a fresh repository. After creating a site from this template, run this
+one-time setup from the repository checkout:
+
+```bash
+bash scripts/enable-pages.sh
+```
+
+The script enables Pages with the GitHub Actions source. After that, every push
+to `main` deploys automatically through `.github/workflows/pages.yml`.
 
 ## Theme Defaults
 
