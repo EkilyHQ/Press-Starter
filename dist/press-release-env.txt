@@ -1,0 +1,6 @@
+tag=v3.3.39
+asset_name=press-system-v3.3.39.zip
+asset_url=https://github.com/EkilyHQ/Press/releases/download/v3.3.39/press-system-v3.3.39.zip
+asset_size=514169
+asset_sha256=108aedba44083193191032f7cfbaf33263d65bc4825f757e0e5751b6a213effc
+html_url=https://github.com/EkilyHQ/Press/releases/tag/v3.3.39
