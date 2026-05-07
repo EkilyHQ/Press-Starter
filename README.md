@@ -9,7 +9,7 @@ Use this repository through GitHub's **Use this template** button to create a ne
 1. Use this repository as a template.
 2. Edit `site.yaml` and set `siteTitle`, `siteDescription`, and `repo.owner` / `repo.name`.
 3. Add posts and tabs through `index_editor.html`.
-4. Enable GitHub Pages for the repository.
+4. Push changes to `main`; the included Pages workflow publishes the site.
 5. Open the published site and editor from GitHub Pages.
 
 ## Included
@@ -18,7 +18,14 @@ Use this repository through GitHub's **Use this template** button to create a ne
 - `wwwroot/index.yaml`
 - `wwwroot/tabs.yaml`
 - Press runtime files from the system release package
-- GitHub Pages setup documentation
+- GitHub Pages deployment workflow
+
+## GitHub Pages
+
+New repositories created from this template include `.github/workflows/pages.yml`.
+The workflow publishes the static site from a curated artifact containing
+`index.html`, `index_editor.html`, `site.yaml`, `.nojekyll`, `assets/`, and
+`wwwroot/`. No separate build step is required.
 
 ## Theme Defaults
 
