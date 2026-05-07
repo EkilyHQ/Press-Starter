@@ -9,8 +9,8 @@ Use this repository through GitHub's **Use this template** button to create a ne
 1. Use this repository as a template.
 2. Edit `site.yaml` and set `siteTitle`, `siteDescription`, and `repo.owner` / `repo.name`.
 3. Add posts and tabs through `index_editor.html`.
-4. Enable GitHub Pages once with `bash scripts/enable-pages.sh`.
-5. Push changes to `main`; the included Pages workflow publishes the site.
+4. Keep GitHub Pages set to **Deploy from a branch**, with `main` and `/`.
+5. Push changes to `main`; GitHub Pages publishes the site from the repository root.
 6. Open the published site and editor from GitHub Pages.
 
 ## Included
@@ -19,25 +19,19 @@ Use this repository through GitHub's **Use this template** button to create a ne
 - `wwwroot/index.yaml`
 - `wwwroot/tabs.yaml`
 - Press runtime files from the system release package
-- GitHub Pages deployment workflow
+- `.nojekyll` for GitHub Pages branch publishing
 
 ## GitHub Pages
 
-New repositories created from this template include `.github/workflows/pages.yml`.
-The workflow publishes the static site from a curated artifact containing
-`index.html`, `index_editor.html`, `site.yaml`, `.nojekyll`, `assets/`, and
-`wwwroot/`. No separate build step is required.
+Press Starter is a no-build static site, so GitHub Pages should use **Deploy from
+a branch** with branch `main` and folder `/`. New repositories created from this
+template may already have that source selected. If Pages is disabled or points
+somewhere else, set it in **Settings -> Pages -> Build and deployment**.
 
-GitHub does not let a copied workflow's default `GITHUB_TOKEN` create the Pages
-site for a fresh repository. After creating a site from this template, run this
-one-time setup from the repository checkout:
-
-```bash
-bash scripts/enable-pages.sh
-```
-
-The script enables Pages with the GitHub Actions source. After that, every push
-to `main` deploys automatically through `.github/workflows/pages.yml`.
+Do not switch the starter site to **GitHub Actions** unless you add your own
+Pages deployment workflow. The template intentionally publishes directly from
+the repository root so the generated site works with GitHub's default branch
+Pages mode.
 
 ## Theme Defaults
 
