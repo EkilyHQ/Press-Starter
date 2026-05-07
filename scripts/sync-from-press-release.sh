@@ -136,7 +136,7 @@ while IFS= read -r entry; do
 
   case "${rel}" in
     index.html|index_editor.html|assets/main.js) ;;
-    assets/js/*|assets/i18n/*|assets/schema/*|assets/themes/native/*|assets/themes/catalog.json) ;;
+    assets/js/*|assets/i18n/*|assets/schema/*|assets/themes/native/*) ;;
     assets/themes/packs.json)
       echo "system release archive must not provide YAP packs.json" >&2
       exit 1
@@ -190,7 +190,7 @@ sync_payload_dir "assets/js"
 sync_payload_dir "assets/i18n"
 sync_payload_dir "assets/schema"
 sync_payload_dir "assets/themes/native"
-copy_payload_file "assets/themes/catalog.json"
+rm -f "${repo_root}/assets/themes/catalog.json"
 
 require_payload_file "assets/js/theme-manager.js"
 require_payload_file "assets/themes/native/theme.json"
