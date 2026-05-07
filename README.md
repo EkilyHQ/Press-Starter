@@ -5,9 +5,10 @@ YAP is the tiny GitHub template for a Press site. The name means
 
 Use this repository through GitHub's **Use this template** button to create a
 new site. It includes the Press runtime, editor, built-in `native` theme, Theme
-Manager, `assets/themes/packs.json`, `assets/themes/catalog.json`, and a small
-starter article plus a small starter page in every bundled Press language. It
-does not include the Press official documentation corpus or regression posts.
+Manager, `assets/themes/packs.json`, and a small starter article plus a small
+starter page in every bundled Press language. It does not include the Press
+official documentation corpus, regression posts, or a bundled official theme
+catalog.
 
 ## Start a Site
 

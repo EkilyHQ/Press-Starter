@@ -32,7 +32,6 @@ printf 'export const en = true;\n' > "${payload_dir}/assets/i18n/en.js"
 printf '{}\n' > "${payload_dir}/assets/schema/theme.json"
 printf '.native {}\n' > "${payload_dir}/assets/themes/native/theme.css"
 printf 'export const native = true;\n' > "${payload_dir}/assets/themes/native/modules/interactions.js"
-printf '{"schemaVersion":1,"themes":[]}\n' > "${payload_dir}/assets/themes/catalog.json"
 cat > "${payload_dir}/assets/themes/native/theme.json" <<'JSON'
 {
   "name": "Native",
@@ -54,6 +53,7 @@ printf 'yap-owned\n' > "${starter_dir}/wwwroot/index.yaml"
 printf 'yap-owned\n' > "${starter_dir}/.nojekyll"
 printf 'stale\n' > "${starter_dir}/assets/js/stale.js"
 printf 'stale\n' > "${starter_dir}/assets/themes/native/stale.css"
+printf '{"schemaVersion":1,"themes":[{"value":"stale"}]}\n' > "${starter_dir}/assets/themes/catalog.json"
 printf '[{"value":"arcus","files":["theme.css"]}]\n' > "${starter_dir}/assets/themes/packs.json"
 
 (
@@ -84,6 +84,10 @@ if [[ -f "${starter_dir}/assets/js/stale.js" ]]; then
 fi
 if [[ -f "${starter_dir}/assets/themes/native/stale.css" ]]; then
   echo "sync must delete stale native theme files" >&2
+  exit 1
+fi
+if [[ -f "${starter_dir}/assets/themes/catalog.json" ]]; then
+  echo "sync must delete stale bundled official theme catalog" >&2
   exit 1
 fi
 if ! grep -q '"value": "native"' "${starter_dir}/assets/themes/packs.json"; then
