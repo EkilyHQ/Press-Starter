@@ -43,11 +43,12 @@ mode.
 
 ## Publishing
 
-YAP includes `connect.baseUrl` in `site.yaml`, so the Press editor uses Ekily
-Connect for GitHub App-backed publishing by default. Authors sign in with
-GitHub from the editor and do not need to create a fine-grained Personal Access
-Token. If the GitHub App is not installed on the repository, install it first or
-remove `connect.baseUrl` to use the editor's advanced PAT fallback.
+The Press editor uses Ekily Connect for GitHub App-backed publishing by default.
+Authors sign in with GitHub from the editor and do not need to create a
+fine-grained Personal Access Token. The selected Connect URL is stored in the
+browser's Repository settings, not in `site.yaml`. If the GitHub App is not
+installed on the repository, install it first or switch the editor's Repository
+publish method to the Personal token fallback.
 
 ## Theme Defaults
 
