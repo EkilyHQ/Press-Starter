@@ -14,3 +14,5 @@ repo:
   owner: EkilyHQ
   name: YAP
   branch: main
+connect:
+  baseUrl: https://connect-8mr.pages.dev

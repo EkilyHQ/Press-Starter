@@ -16,8 +16,9 @@ catalog.
 2. Edit `site.yaml` and set `siteTitle`, `siteDescription`, and `repo.owner` / `repo.name`.
 3. Add posts and tabs through `index_editor.html`.
 4. Keep GitHub Pages set to **Deploy from a branch**, with `main` and `/`.
-5. Push changes to `main`; GitHub Pages publishes the site from the repository root.
-6. Open the published site and editor from GitHub Pages.
+5. Install the Ekily Connect GitHub App on the new repository so the editor can publish through GitHub sign-in.
+6. Push changes to `main`; GitHub Pages publishes the site from the repository root.
+7. Open the published site and editor from GitHub Pages.
 
 ## Included
 
@@ -39,6 +40,14 @@ Do not switch the YAP site to **GitHub Actions** unless you add your own Pages
 deployment workflow. The template intentionally publishes directly from the
 repository root so the generated site works with GitHub's default branch Pages
 mode.
+
+## Publishing
+
+YAP includes `connect.baseUrl` in `site.yaml`, so the Press editor uses Ekily
+Connect for GitHub App-backed publishing by default. Authors sign in with
+GitHub from the editor and do not need to create a fine-grained Personal Access
+Token. If the GitHub App is not installed on the repository, install it first or
+remove `connect.baseUrl` to use the editor's advanced PAT fallback.
 
 ## Theme Defaults
 
