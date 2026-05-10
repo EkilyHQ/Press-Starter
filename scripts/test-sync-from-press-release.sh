@@ -33,6 +33,7 @@ mkdir -p \
 
 printf '<!doctype html>\n' > "${payload_dir}/index.html"
 printf '<!doctype html>\n' > "${payload_dir}/index_editor.html"
+printf '<!doctype html>\n' > "${payload_dir}/index_editor_preview.html"
 printf 'export const main = true;\n' > "${payload_dir}/assets/main.js"
 printf 'export const manager = true;\n' > "${payload_dir}/assets/js/theme-manager.js"
 printf 'export const fresh = true;\n' > "${payload_dir}/assets/js/fresh.js"
@@ -84,6 +85,10 @@ if ! grep -qx 'yap-owned' "${starter_dir}/site.yaml"; then
 fi
 if ! grep -qx 'yap-owned' "${starter_dir}/wwwroot/index.yaml"; then
   echo "sync must preserve YAP-owned wwwroot content" >&2
+  exit 1
+fi
+if [[ ! -f "${starter_dir}/index_editor_preview.html" ]]; then
+  echo "sync must copy the editor preview iframe shell" >&2
   exit 1
 fi
 if [[ -f "${starter_dir}/assets/js/stale.js" ]]; then
