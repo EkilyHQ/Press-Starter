@@ -8,6 +8,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
+if ! grep -q '^annotate:$' "${repo_root}/site.yaml" \
+  || ! grep -q '^  enabled: true$' "${repo_root}/site.yaml" \
+  || ! grep -q '^  connectBaseUrl: https://connect-8mr.pages.dev$' "${repo_root}/site.yaml" \
+  || ! grep -q '^  discussionCategory: General$' "${repo_root}/site.yaml"; then
+  echo "YAP site.yaml must default new sites to enabled Press Annotate comments" >&2
+  exit 1
+fi
+
 version="v9.9.9"
 payload_root="press-system-${version}"
 payload_dir="${tmp_dir}/${payload_root}"
