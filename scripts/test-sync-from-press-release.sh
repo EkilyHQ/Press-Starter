@@ -34,6 +34,7 @@ mkdir -p \
 printf '<!doctype html>\n' > "${payload_dir}/index.html"
 printf '<!doctype html>\n' > "${payload_dir}/index_editor.html"
 printf '<!doctype html>\n' > "${payload_dir}/index_editor_preview.html"
+printf '{"schemaVersion":1,"type":"press-system","version":"9.9.9","tag":"v9.9.9","upgradeFrom":{"ranges":[">=9.0.0 <9.9.9"],"allowUnknownSource":true,"message":""}}\n' > "${payload_dir}/assets/press-system.json"
 printf 'export const main = true;\n' > "${payload_dir}/assets/main.js"
 printf 'export const manager = true;\n' > "${payload_dir}/assets/js/theme-manager.js"
 printf 'export const fresh = true;\n' > "${payload_dir}/assets/js/fresh.js"
@@ -45,7 +46,10 @@ cat > "${payload_dir}/assets/themes/native/theme.json" <<'JSON'
 {
   "name": "Native",
   "version": "9.9.9",
-  "contractVersion": 1
+  "contractVersion": 1,
+  "engines": {
+    "press": ">=9.9.9 <10.0.0"
+  }
 }
 JSON
 
@@ -103,8 +107,16 @@ if [[ -f "${starter_dir}/assets/themes/catalog.json" ]]; then
   echo "sync must delete stale bundled official theme catalog" >&2
   exit 1
 fi
+if ! grep -q '"version":"9.9.9"' "${starter_dir}/assets/press-system.json" && ! grep -q '"version": "9.9.9"' "${starter_dir}/assets/press-system.json"; then
+  echo "sync must copy the Press system version manifest" >&2
+  exit 1
+fi
 if ! grep -q '"value": "native"' "${starter_dir}/assets/themes/packs.json"; then
   echo "sync must regenerate native registry entry" >&2
+  exit 1
+fi
+if ! grep -q '"engines"' "${starter_dir}/assets/themes/packs.json"; then
+  echo "sync must record native Press engine compatibility in packs.json" >&2
   exit 1
 fi
 if grep -q 'arcus' "${starter_dir}/assets/themes/packs.json"; then

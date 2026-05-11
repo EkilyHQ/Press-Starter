@@ -135,7 +135,7 @@ while IFS= read -r entry; do
   [[ "${rel}" != "${entry}" ]] || continue
 
   case "${rel}" in
-    index.html|index_editor.html|index_editor_preview.html|assets/main.js) ;;
+    index.html|index_editor.html|index_editor_preview.html|assets/press-system.json|assets/main.js) ;;
     assets/js/*|assets/i18n/*|assets/schema/*|assets/themes/native/*) ;;
     assets/themes/packs.json)
       echo "system release archive must not provide YAP packs.json" >&2
@@ -186,6 +186,7 @@ sync_payload_dir() {
 copy_payload_file "index.html"
 copy_payload_file "index_editor.html"
 copy_payload_file "index_editor_preview.html"
+copy_payload_file "assets/press-system.json"
 copy_payload_file "assets/main.js"
 sync_payload_dir "assets/js"
 sync_payload_dir "assets/i18n"
@@ -194,6 +195,7 @@ sync_payload_dir "assets/themes/native"
 rm -f "${repo_root}/assets/themes/catalog.json"
 
 require_payload_file "assets/js/theme-manager.js"
+require_payload_file "assets/press-system.json"
 require_payload_file "assets/themes/native/theme.json"
 
 export PRESS_RELEASE_TAG="${release_tag}"
@@ -229,6 +231,7 @@ const registryEntry = {
   label: String(manifest.name || 'Native'),
   version: String(manifest.version || ''),
   contractVersion: Number(manifest.contractVersion || 1),
+  engines: manifest.engines && typeof manifest.engines === 'object' ? manifest.engines : {},
   builtIn: true,
   removable: false,
   source: {
