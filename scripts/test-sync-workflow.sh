@@ -35,6 +35,11 @@ if ! grep -F 'PRESS_REPOSITORY' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'actions: write' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must be allowed to dispatch the Pages workflow after sync commits" >&2
+  exit 1
+fi
+
 if ! grep -F 'scripts/sync-from-press-release.sh' "${workflow}" >/dev/null; then
   echo "YAP sync workflow must run the local sync script" >&2
   exit 1
@@ -42,6 +47,21 @@ fi
 
 if ! grep -F 'scripts/test-sync-from-press-release.sh' "${workflow}" >/dev/null; then
   echo "YAP sync workflow must validate the sync script before publishing to main" >&2
+  exit 1
+fi
+
+if ! grep -F 'scripts/test-pages-workflow.sh' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must validate the Pages workflow before publishing to main" >&2
+  exit 1
+fi
+
+if ! grep -F 'actions/checkout@v6' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must use a Node 24-compatible checkout action" >&2
+  exit 1
+fi
+
+if grep -E 'actions/(checkout@v4|upload-artifact@v4)' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must not pin known Node 20-backed GitHub actions" >&2
   exit 1
 fi
 
@@ -70,10 +90,22 @@ if ! grep -F 'git push origin HEAD:main' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'gh workflow run pages.yml --ref main' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must dispatch the owned Pages workflow after syncing" >&2
+  exit 1
+fi
+
 test_line="$(grep -nF 'scripts/test-sync-from-press-release.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
+pages_test_line="$(grep -nF 'scripts/test-pages-workflow.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
 push_line="$(grep -nF 'git push origin HEAD:main' "${workflow}" | head -n 1 | cut -d: -f1)"
-if [[ -z "${test_line}" || -z "${push_line}" || "${test_line}" -ge "${push_line}" ]]; then
-  echo "YAP sync workflow must validate the sync script before pushing to main" >&2
+pages_dispatch_line="$(grep -nF 'gh workflow run pages.yml --ref main' "${workflow}" | head -n 1 | cut -d: -f1)"
+if [[ -z "${test_line}" || -z "${pages_test_line}" || -z "${push_line}" || "${test_line}" -ge "${push_line}" || "${pages_test_line}" -ge "${push_line}" ]]; then
+  echo "YAP sync workflow must validate sync and Pages scripts before pushing to main" >&2
+  exit 1
+fi
+
+if [[ -z "${pages_dispatch_line}" || -z "${push_line}" || "${pages_dispatch_line}" -le "${push_line}" ]]; then
+  echo "YAP sync workflow must dispatch Pages only after pushing sync changes" >&2
   exit 1
 fi
 
