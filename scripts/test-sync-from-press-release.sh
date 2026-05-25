@@ -35,6 +35,7 @@ printf '<!doctype html>\n' > "${payload_dir}/index.html"
 printf '<!doctype html>\n' > "${payload_dir}/index_editor.html"
 printf '<!doctype html>\n' > "${payload_dir}/index_editor_preview.html"
 printf '{"schemaVersion":1,"type":"press-system","version":"9.9.9","tag":"v9.9.9","upgradeFrom":{"ranges":[">=9.0.0 <9.9.9"],"allowUnknownSource":true,"message":""}}\n' > "${payload_dir}/assets/press-system.json"
+printf '{"schemaVersion":1,"type":"press-runtime-assets","version":"9.9.9","tag":"v9.9.9","cacheKey":"press-system-v9.9.9","strategy":"query-param","entries":[]}\n' > "${payload_dir}/assets/press-runtime-manifest.json"
 printf 'export const main = true;\n' > "${payload_dir}/assets/main.js"
 printf 'export const manager = true;\n' > "${payload_dir}/assets/js/theme-manager.js"
 printf 'export const fresh = true;\n' > "${payload_dir}/assets/js/fresh.js"
@@ -111,6 +112,10 @@ if ! grep -q '"version":"9.9.9"' "${starter_dir}/assets/press-system.json" && ! 
   echo "sync must copy the Press system version manifest" >&2
   exit 1
 fi
+if ! grep -q '"type":"press-runtime-assets"' "${starter_dir}/assets/press-runtime-manifest.json" && ! grep -q '"type": "press-runtime-assets"' "${starter_dir}/assets/press-runtime-manifest.json"; then
+  echo "sync must copy the generated Press runtime asset manifest" >&2
+  exit 1
+fi
 if ! grep -q '"value": "native"' "${starter_dir}/assets/themes/packs.json"; then
   echo "sync must regenerate native registry entry" >&2
   exit 1
@@ -125,6 +130,37 @@ if grep -q 'arcus' "${starter_dir}/assets/themes/packs.json"; then
 fi
 if ! grep -q '"theme.css"' "${starter_dir}/assets/themes/packs.json"; then
   echo "sync must record native files in packs.json" >&2
+  exit 1
+fi
+
+legacy_payload_root="press-system-v9.8.0"
+legacy_payload_dir="${tmp_dir}/${legacy_payload_root}"
+mkdir -p \
+  "${legacy_payload_dir}/assets/js" \
+  "${legacy_payload_dir}/assets/i18n" \
+  "${legacy_payload_dir}/assets/schema" \
+  "${legacy_payload_dir}/assets/themes/native/modules"
+cp "${payload_dir}/index.html" "${legacy_payload_dir}/index.html"
+cp "${payload_dir}/index_editor.html" "${legacy_payload_dir}/index_editor.html"
+cp "${payload_dir}/index_editor_preview.html" "${legacy_payload_dir}/index_editor_preview.html"
+printf '{"schemaVersion":1,"type":"press-system","version":"9.8.0","tag":"v9.8.0","upgradeFrom":{"ranges":[">=9.0.0 <9.8.0"],"allowUnknownSource":true,"message":""}}\n' > "${legacy_payload_dir}/assets/press-system.json"
+printf 'export const main = "legacy";\n' > "${legacy_payload_dir}/assets/main.js"
+printf 'export const manager = "legacy";\n' > "${legacy_payload_dir}/assets/js/theme-manager.js"
+printf 'export const en = "legacy";\n' > "${legacy_payload_dir}/assets/i18n/en.js"
+printf '{}\n' > "${legacy_payload_dir}/assets/schema/theme.json"
+cp "${payload_dir}/assets/themes/native/theme.css" "${legacy_payload_dir}/assets/themes/native/theme.css"
+cp "${payload_dir}/assets/themes/native/modules/interactions.js" "${legacy_payload_dir}/assets/themes/native/modules/interactions.js"
+cp "${payload_dir}/assets/themes/native/theme.json" "${legacy_payload_dir}/assets/themes/native/theme.json"
+(
+  cd "${tmp_dir}"
+  zip -qr "${tmp_dir}/legacy-press-system.zip" "${legacy_payload_root}"
+)
+(
+  cd "${starter_dir}"
+  bash scripts/sync-from-press-release.sh --archive "${tmp_dir}/legacy-press-system.zip" --tag "v9.8.0"
+)
+if [[ -f "${starter_dir}/assets/press-runtime-manifest.json" ]]; then
+  echo "sync must remove stale runtime manifests when syncing older Press releases" >&2
   exit 1
 fi
 

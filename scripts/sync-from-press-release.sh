@@ -135,7 +135,7 @@ while IFS= read -r entry; do
   [[ "${rel}" != "${entry}" ]] || continue
 
   case "${rel}" in
-    index.html|index_editor.html|index_editor_preview.html|assets/press-system.json|assets/main.js) ;;
+    index.html|index_editor.html|index_editor_preview.html|assets/press-system.json|assets/press-runtime-manifest.json|assets/main.js) ;;
     assets/js/*|assets/i18n/*|assets/schema/*|assets/themes/native/*) ;;
     assets/themes/packs.json)
       echo "system release archive must not provide YAP packs.json" >&2
@@ -176,6 +176,16 @@ copy_payload_file() {
   cp "${payload_dir}/${path}" "${repo_root}/${path}"
 }
 
+copy_optional_payload_file() {
+  local path="$1"
+  if [[ -f "${payload_dir}/${path}" ]]; then
+    mkdir -p "${repo_root}/$(dirname "${path}")"
+    cp "${payload_dir}/${path}" "${repo_root}/${path}"
+  else
+    rm -f "${repo_root}/${path}"
+  fi
+}
+
 sync_payload_dir() {
   local path="$1"
   require_payload_dir "${path}"
@@ -187,6 +197,7 @@ copy_payload_file "index.html"
 copy_payload_file "index_editor.html"
 copy_payload_file "index_editor_preview.html"
 copy_payload_file "assets/press-system.json"
+copy_optional_payload_file "assets/press-runtime-manifest.json"
 copy_payload_file "assets/main.js"
 sync_payload_dir "assets/js"
 sync_payload_dir "assets/i18n"
