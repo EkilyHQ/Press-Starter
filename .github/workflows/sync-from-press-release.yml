@@ -13,6 +13,7 @@ on:
     - cron: '17 3 * * *'
 
 permissions:
+  actions: write
   contents: write
 
 concurrency:
@@ -129,3 +130,9 @@ jobs:
           git commit -m "Sync Press runtime ${SYNC_TAG}"
           git pull --rebase origin main
           git push origin HEAD:main
+
+      - name: Dispatch Pages deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run pages.yml --ref main

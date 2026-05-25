@@ -10,18 +10,13 @@ if [[ ! -f "${workflow}" ]]; then
   exit 1
 fi
 
-if ! grep -F 'workflow_run:' "${workflow}" >/dev/null || ! grep -F -- '- Sync From Press Release' "${workflow}" >/dev/null; then
-  echo "YAP Pages workflow must deploy after successful runtime sync runs" >&2
-  exit 1
-fi
-
-if ! grep -F 'branches:' "${workflow}" >/dev/null || ! grep -F -- '- main' "${workflow}" >/dev/null; then
-  echo "YAP Pages workflow_run trigger must be restricted to main-branch sync runs" >&2
-  exit 1
-fi
-
 if ! grep -F 'push:' "${workflow}" >/dev/null || ! grep -F -- '- main' "${workflow}" >/dev/null; then
   echo "YAP Pages workflow must deploy direct main-branch updates" >&2
+  exit 1
+fi
+
+if grep -F 'workflow_run:' "${workflow}" >/dev/null; then
+  echo "YAP Pages workflow must not deploy from workflow_run because the sync workflow creates a newer commit during the run" >&2
   exit 1
 fi
 
