@@ -15,6 +15,11 @@ if ! grep -F 'workflow_run:' "${workflow}" >/dev/null || ! grep -F -- '- Sync Fr
   exit 1
 fi
 
+if ! grep -F 'branches:' "${workflow}" >/dev/null || ! grep -F -- '- main' "${workflow}" >/dev/null; then
+  echo "YAP Pages workflow_run trigger must be restricted to main-branch sync runs" >&2
+  exit 1
+fi
+
 if ! grep -F 'push:' "${workflow}" >/dev/null || ! grep -F -- '- main' "${workflow}" >/dev/null; then
   echo "YAP Pages workflow must deploy direct main-branch updates" >&2
   exit 1
@@ -67,6 +72,11 @@ fi
 
 if ! grep -F 'path: dist/pages' "${workflow}" >/dev/null; then
   echo "YAP Pages workflow must deploy the prepared Pages artifact directory" >&2
+  exit 1
+fi
+
+if ! grep -F 'include-hidden-files: true' "${workflow}" >/dev/null; then
+  echo "YAP Pages workflow must include dotfiles such as .nojekyll in the Pages artifact" >&2
   exit 1
 fi
 
