@@ -32,7 +32,7 @@ jobs:
       PRESS_RELEASE_TOKEN: ${{ secrets.PRESS_RELEASE_TOKEN || github.token }}
     steps:
       - name: Checkout YAP
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
@@ -107,6 +107,10 @@ jobs:
       - name: Validate sync script
         run: |
           bash scripts/test-sync-from-press-release.sh
+
+      - name: Validate Pages workflow
+        run: |
+          bash scripts/test-pages-workflow.sh
 
       - name: Commit and push sync to main
         env:
