@@ -78,14 +78,16 @@ jobs:
                 exit 1
               fi
               canonical_system_release_source="https://raw.githubusercontent.com/${PRESS_REPOSITORY}/release-artifacts/${release_tag}/system-release.json"
-              if curl --fail-with-body --location --silent --show-error \
+              if ! curl --fail-with-body --location --silent --show-error \
                 --header "Authorization: Bearer ${PRESS_RELEASE_TOKEN}" \
                 --output dist/system-release.json \
                 "${canonical_system_release_source}"; then
-                if node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('dist/system-release.json','utf8')); process.exit(m.intent && m.intent.url ? 0 : 1);"; then
-                  echo "system-release.json declares release intent, but the canonical manifest could not be fetched." >&2
-                  exit 1
-                fi
+                echo "could not verify whether ${release_tag} declares release intent; refusing legacy fallback." >&2
+                exit 1
+              fi
+              if node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('dist/system-release.json','utf8')); process.exit(m.intent && m.intent.url ? 0 : 1);"; then
+                echo "system-release.json declares release intent, but the canonical manifest could not be fetched." >&2
+                exit 1
               fi
               echo "No canonical release intent manifest available for ${release_tag}; using legacy release metadata."
             fi
@@ -123,6 +125,20 @@ jobs:
             --tag "${{ steps.release.outputs.tag }}" \
             --sha256 "${{ steps.release.outputs.asset_sha256 }}" \
             --size "${{ steps.release.outputs.asset_size }}"
+
+      - name: Write Press system lock
+        run: |
+          set -euo pipefail
+          node scripts/write-press-system-lock.js \
+            --release-env dist/press-release-env.txt \
+            --system-manifest assets/press-system.json \
+            --out press-system-lock.json \
+            --repository "${GITHUB_REPOSITORY}" \
+            --category downstream \
+            --ref main \
+            --path assets/press-system.json \
+            --observed-type press-system-manifest \
+            --reconciler press-runtime-sync
 
       - name: Validate sync script
         run: |
