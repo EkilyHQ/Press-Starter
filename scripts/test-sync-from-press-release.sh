@@ -180,4 +180,22 @@ if (
   exit 1
 fi
 
+symlink_payload="${tmp_dir}/symlink-payload"
+mkdir -p "${symlink_payload}/${payload_root}"
+cp -R "${payload_dir}/." "${symlink_payload}/${payload_root}/"
+printf 'outside payload\n' > "${tmp_dir}/outside-main.js"
+rm -f "${symlink_payload}/${payload_root}/assets/main.js"
+ln -s "${tmp_dir}/outside-main.js" "${symlink_payload}/${payload_root}/assets/main.js"
+(
+  cd "${symlink_payload}"
+  zip -qry "${tmp_dir}/symlink-press-system.zip" "${payload_root}"
+)
+if (
+  cd "${starter_dir}"
+  bash scripts/sync-from-press-release.sh --archive "${tmp_dir}/symlink-press-system.zip" --tag "${version}" >/dev/null 2>&1
+); then
+  echo "sync must reject system archives that include symlinks" >&2
+  exit 1
+fi
+
 echo "ok - YAP sync from Press release"
