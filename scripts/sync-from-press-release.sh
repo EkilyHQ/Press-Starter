@@ -152,6 +152,11 @@ extract_dir="${tmp_dir}/extract"
 mkdir -p "${extract_dir}"
 unzip -q "${archive_path}" -d "${extract_dir}"
 payload_dir="${extract_dir}/${payload_root}"
+symlink_path="$(find "${payload_dir}" -type l -print -quit)"
+if [[ -n "${symlink_path}" ]]; then
+  echo "system release archive must not contain symlinks: ${symlink_path#${payload_dir}/}" >&2
+  exit 1
+fi
 
 require_payload_file() {
   local path="$1"
