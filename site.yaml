@@ -6,6 +6,8 @@ siteDescription:
   cht-hk: 一個 yet-another press 小站，用來發佈輕巧的文章、頁面，還有快樂的 yap yap yap。
   ja: 小さな記事やページを楽しく yap yap yap と公開する yet-another press サイト。
 contentRoot: wwwroot
+languages:
+  public: content
 themeMode: auto
 themePack: native
 annotate:
