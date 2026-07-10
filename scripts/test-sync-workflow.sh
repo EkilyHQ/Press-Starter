@@ -135,15 +135,30 @@ if ! grep -F 'gh workflow run pages.yml --ref main' "${workflow}" >/dev/null; th
   exit 1
 fi
 
-test_line="$(grep -nF 'scripts/test-sync-from-press-release.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
+sync_line="$(grep -nF 'bash scripts/sync-from-press-release.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
+lock_line="$(grep -nF 'node scripts/write-press-system-lock.js' "${workflow}" | head -n 1 | cut -d: -f1)"
+test_line="$(grep -nF 'bash scripts/test-sync-from-press-release.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
 pages_test_line="$(grep -nF 'scripts/test-pages-workflow.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
 pages_artifact_test_line="$(grep -nF 'scripts/test-pages-artifact.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
+stage_line="$(grep -nF 'Stage synced runtime for tracked-file validation' "${workflow}" | head -n 1 | cut -d: -f1)"
 push_line="$(grep -nF 'git push origin HEAD:main' "${workflow}" | head -n 1 | cut -d: -f1)"
 pages_dispatch_line="$(grep -nF 'gh workflow run pages.yml --ref main' "${workflow}" | head -n 1 | cut -d: -f1)"
-if [[ -z "${test_line}" || -z "${pages_test_line}" || -z "${pages_artifact_test_line}" || -z "${push_line}" || "${test_line}" -ge "${push_line}" || "${pages_test_line}" -ge "${push_line}" || "${pages_artifact_test_line}" -ge "${push_line}" ]]; then
+if [[ -z "${sync_line}" || -z "${lock_line}" || -z "${test_line}" || -z "${pages_test_line}" || -z "${pages_artifact_test_line}" || -z "${stage_line}" || -z "${push_line}" || "${sync_line}" -ge "${stage_line}" || "${lock_line}" -ge "${stage_line}" || "${stage_line}" -ge "${test_line}" || "${stage_line}" -ge "${pages_artifact_test_line}" || "${test_line}" -ge "${push_line}" || "${pages_test_line}" -ge "${push_line}" || "${pages_artifact_test_line}" -ge "${push_line}" ]]; then
   echo "YAP sync workflow must validate sync, Pages workflow, and Pages artifact scripts before pushing to main" >&2
   exit 1
 fi
+
+stage_block="$(awk '
+  /- name: Stage synced runtime for tracked-file validation/ { capture = 1 }
+  capture && seen && /- name:/ { exit }
+  capture { print; seen = 1 }
+' "${workflow}")"
+for required in 'git add -A --' index.html index_editor.html index_editor_preview.html assets press-system-lock.json; do
+  if ! grep -F "${required}" <<< "${stage_block}" >/dev/null; then
+    echo "YAP sync workflow staging step must include ${required}" >&2
+    exit 1
+  fi
+done
 
 if [[ -z "${pages_dispatch_line}" || -z "${push_line}" || "${pages_dispatch_line}" -le "${push_line}" ]]; then
   echo "YAP sync workflow must dispatch Pages only after pushing sync changes" >&2
