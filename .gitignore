@@ -3,6 +3,7 @@
 .playwright-cli/
 .codex/
 dist/
+node_modules/
 
 # Local-only development sandbox
 site.local.yaml
