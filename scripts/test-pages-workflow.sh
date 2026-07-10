@@ -35,6 +35,11 @@ if ! grep -F 'actions/checkout@v6' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'actions/setup-node@v6' "${workflow}" >/dev/null || ! grep -F 'node-version: 22.18.0' "${workflow}" >/dev/null; then
+  echo "YAP Pages workflow must pin the Node runtime used by the artifact policy" >&2
+  exit 1
+fi
+
 if ! grep -F 'actions/configure-pages@v6' "${workflow}" >/dev/null; then
   echo "YAP Pages workflow must use a Node 24-compatible configure-pages action" >&2
   exit 1
@@ -60,8 +65,28 @@ if ! grep -F 'ref: main' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-if ! grep -F 'git ls-files -z -- .nojekyll index.html index_editor.html index_editor_preview.html site.yaml assets wwwroot' "${workflow}" >/dev/null; then
-  echo "YAP Pages workflow must upload the tracked runtime and starter content surface" >&2
+if ! grep -F 'bash scripts/build-pages-artifact.sh' "${workflow}" >/dev/null; then
+  echo "YAP Pages workflow must use the repository-owned artifact builder" >&2
+  exit 1
+fi
+
+if ! grep -F 'bash scripts/test-pages-artifact.sh' "${workflow}" >/dev/null; then
+  echo "YAP Pages workflow must exercise the editor exclusion artifact boundary before deployment" >&2
+  exit 1
+fi
+
+if grep -F 'git ls-files -z --' "${workflow}" >/dev/null; then
+  echo "YAP Pages workflow must not duplicate tracked artifact copy policy inline" >&2
+  exit 1
+fi
+
+if ! grep -F 'git ls-files -z -- .nojekyll .press-pages-no-editor index.html index_editor.html index_editor_preview.html site.yaml assets wwwroot' scripts/build-pages-artifact.sh >/dev/null; then
+  echo "YAP Pages builder must copy the tracked runtime, content, and optional editor exclusion marker" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/pages-editor-exclusion.mjs --source-root "${repo_root}" --pages-root "${output_dir}"' scripts/build-pages-artifact.sh >/dev/null; then
+  echo "YAP Pages builder must enforce the editor exclusion contract" >&2
   exit 1
 fi
 

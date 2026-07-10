@@ -90,6 +90,11 @@ if ! grep -F 'scripts/test-pages-workflow.sh' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'scripts/test-pages-artifact.sh' "${workflow}" >/dev/null; then
+  echo "YAP sync workflow must validate the Pages artifact policy before publishing to main" >&2
+  exit 1
+fi
+
 if ! grep -F 'actions/checkout@v6' "${workflow}" >/dev/null; then
   echo "YAP sync workflow must use a Node 24-compatible checkout action" >&2
   exit 1
@@ -132,10 +137,11 @@ fi
 
 test_line="$(grep -nF 'scripts/test-sync-from-press-release.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
 pages_test_line="$(grep -nF 'scripts/test-pages-workflow.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
+pages_artifact_test_line="$(grep -nF 'scripts/test-pages-artifact.sh' "${workflow}" | head -n 1 | cut -d: -f1)"
 push_line="$(grep -nF 'git push origin HEAD:main' "${workflow}" | head -n 1 | cut -d: -f1)"
 pages_dispatch_line="$(grep -nF 'gh workflow run pages.yml --ref main' "${workflow}" | head -n 1 | cut -d: -f1)"
-if [[ -z "${test_line}" || -z "${pages_test_line}" || -z "${push_line}" || "${test_line}" -ge "${push_line}" || "${pages_test_line}" -ge "${push_line}" ]]; then
-  echo "YAP sync workflow must validate sync and Pages scripts before pushing to main" >&2
+if [[ -z "${test_line}" || -z "${pages_test_line}" || -z "${pages_artifact_test_line}" || -z "${push_line}" || "${test_line}" -ge "${push_line}" || "${pages_test_line}" -ge "${push_line}" || "${pages_artifact_test_line}" -ge "${push_line}" ]]; then
+  echo "YAP sync workflow must validate sync, Pages workflow, and Pages artifact scripts before pushing to main" >&2
   exit 1
 fi
 
@@ -164,7 +170,7 @@ if grep -F 'assets/themes/packs.json' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-node scripts/test-release-intent-resolution.js
-node scripts/test-press-system-lock.js
+PRESS_TEST_REPOSITORY_NAME=YAP node scripts/test-release-intent-resolution.js
+GITHUB_REPOSITORY=EkilyHQ/YAP node scripts/test-press-system-lock.js
 
 echo "ok - YAP sync workflow"

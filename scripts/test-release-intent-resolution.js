@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const repoRoot = path.resolve(__dirname, '..');
-const repoName = path.basename(repoRoot);
+const repoName = process.env.PRESS_TEST_REPOSITORY_NAME || path.basename(repoRoot);
 const script = path.join(repoRoot, 'scripts', 'resolve-press-system-release.js');
 const digestA = 'a'.repeat(64);
 const digestB = 'b'.repeat(64);

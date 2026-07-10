@@ -132,6 +132,7 @@ jobs:
       - name: Validate Pages workflow
         run: |
           bash scripts/test-pages-workflow.sh
+          bash scripts/test-pages-artifact.sh
 
       - name: Commit and push sync to main
         env:
