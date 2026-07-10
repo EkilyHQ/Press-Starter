@@ -65,6 +65,7 @@ cp "${repo_root}/scripts/sync-from-press-release.sh" "${starter_dir}/scripts/syn
 printf 'yap-owned\n' > "${starter_dir}/site.yaml"
 printf 'yap-owned\n' > "${starter_dir}/wwwroot/index.yaml"
 printf 'yap-owned\n' > "${starter_dir}/.nojekyll"
+printf '' > "${starter_dir}/.press-pages-no-editor"
 printf 'stale\n' > "${starter_dir}/assets/js/stale.js"
 printf 'stale\n' > "${starter_dir}/assets/themes/native/stale.css"
 printf '{"schemaVersion":1,"themes":[{"value":"stale"}]}\n' > "${starter_dir}/assets/themes/catalog.json"
@@ -92,8 +93,12 @@ if ! grep -qx 'yap-owned' "${starter_dir}/wwwroot/index.yaml"; then
   echo "sync must preserve YAP-owned wwwroot content" >&2
   exit 1
 fi
-if [[ ! -f "${starter_dir}/index_editor_preview.html" ]]; then
-  echo "sync must copy the editor preview iframe shell" >&2
+if [[ ! -f "${starter_dir}/index_editor.html" || ! -f "${starter_dir}/index_editor_preview.html" ]]; then
+  echo "sync must retain both editor entry files regardless of Pages artifact policy" >&2
+  exit 1
+fi
+if [[ ! -f "${starter_dir}/.press-pages-no-editor" ]]; then
+  echo "sync must preserve the YAP-owned Pages editor exclusion marker" >&2
   exit 1
 fi
 if [[ -f "${starter_dir}/assets/js/stale.js" ]]; then

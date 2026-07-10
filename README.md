@@ -36,10 +36,17 @@ branch** with branch `main` and folder `/`. New repositories created from this
 template may already have that source selected. If Pages is disabled or points
 somewhere else, set it in **Settings -> Pages -> Build and deployment**.
 
-Do not switch the YAP site to **GitHub Actions** unless you add your own Pages
-deployment workflow. The template intentionally publishes directly from the
-repository root so the generated site works with GitHub's default branch Pages
-mode.
+The template also carries a repository-owned GitHub Actions Pages workflow for
+sites that need an artifact-only deployment policy. To keep the browser editor
+out of that published artifact, switch Pages to **GitHub Actions**, commit a
+regular `.press-pages-no-editor` file, and set
+`features.editorEntry.enabled: false` as a block mapping in `site.yaml`. Both
+signals are required, and malformed, inline, or ambiguous opt-in mappings fail
+closed. The feature flag alone only hides public links. The artifact removes
+only `index_editor.html` and `index_editor_preview.html`; source files and later
+Press runtime syncs retain both files, so the choice is reversible. Sites made
+from older YAP snapshots must adopt this builder, policy script, and workflow
+manually because runtime sync preserves YAP-owned scripts and workflows.
 
 ## Publishing
 

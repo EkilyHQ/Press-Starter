@@ -28,20 +28,18 @@ jobs:
         with:
           ref: main
 
-      - name: Verify Pages workflow contract
-        run: bash scripts/test-pages-workflow.sh
+      - name: Use Node.js 22.18.0
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.18.0
+
+      - name: Verify Pages artifact contract
+        run: |
+          bash scripts/test-pages-workflow.sh
+          bash scripts/test-pages-artifact.sh
 
       - name: Build Pages artifact
-        run: |
-          set -euo pipefail
-          site_dir="dist/pages"
-          rm -rf "${site_dir}"
-          mkdir -p "${site_dir}"
-
-          while IFS= read -r -d '' file; do
-            mkdir -p "${site_dir}/$(dirname "${file}")"
-            cp "${file}" "${site_dir}/${file}"
-          done < <(git ls-files -z -- .nojekyll index.html index_editor.html index_editor_preview.html site.yaml assets wwwroot)
+        run: bash scripts/build-pages-artifact.sh
 
       - name: Configure Pages
         uses: actions/configure-pages@v6
