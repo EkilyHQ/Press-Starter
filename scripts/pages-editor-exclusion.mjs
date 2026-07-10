@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
+import { parseYAML } from '../assets/js/yaml.js';
 
 export const PAGES_EDITOR_EXCLUSION_MARKER = '.press-pages-no-editor';
 export const PAGES_EDITOR_ENTRY_PATHS = Object.freeze(['index_editor.html', 'index_editor_preview.html']);
@@ -140,6 +141,10 @@ export function readExplicitEditorEntryEnabled(sitePath) {
   if (typeof lexicalValue !== 'boolean') {
     throw new Error('site.yaml features.editorEntry.enabled must be a boolean');
   }
+  const runtimeValue = parseYAML(source)?.features?.editorEntry?.enabled;
+  if (runtimeValue !== lexicalValue) {
+    throw new Error('site.yaml Pages editor exclusion policy must agree with the Press runtime YAML parser');
+  }
   return lexicalValue;
 }
 
@@ -206,7 +211,11 @@ function findDirectMapping(lines, parentIndex, key, label) {
 
   const candidates = lines.slice(blockStart, blockEnd).filter((line) => line.content);
   if (!candidates.length) return undefined;
-  const directIndent = parentIndex < 0 ? 0 : Math.min(...candidates.map((line) => line.indent));
+  const directIndent = parentIndex < 0 ? 0 : candidates[0].indent;
+  const inconsistent = candidates.find((line) => line.indent > parentIndent && line.indent < directIndent);
+  if (inconsistent) {
+    throw new Error(`${label} contains inconsistent indentation on line ${inconsistent.index + 1}`);
+  }
   const direct = candidates.filter((line) => line.indent === directIndent);
   const matches = [];
   for (const line of direct) {

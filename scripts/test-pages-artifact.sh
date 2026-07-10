@@ -175,6 +175,17 @@ printf 'features:\n  editorEntry\n    enabled: false\n' > "${scenario_repo}/site
 assert_policy_rejected "malformed site.yaml feature syntax"
 printf 'features:\n  editorEntry:\n    enabled: false\n    enabled: true\n' > "${scenario_repo}/site.yaml"
 assert_policy_rejected "ambiguous duplicate editorEntry flags"
+printf 'features:\n    editorEntry:\n      enabled: true\n  editorEntry:\n    enabled: false\n' > "${scenario_repo}/site.yaml"
+node --input-type=module - "${scenario_repo}/assets/js/yaml.js" "${scenario_repo}/site.yaml" <<'NODE'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { pathToFileURL } from 'node:url';
+
+const { parseYAML } = await import(pathToFileURL(process.argv[2]).href);
+const runtimeConfig = parseYAML(fs.readFileSync(process.argv[3], 'utf8'));
+assert.equal(runtimeConfig.features.editorEntry.enabled, true);
+NODE
+assert_policy_rejected "runtime-divergent editorEntry indentation"
 printf 'features:\n  editorEntry:\n    enabled: false\n' > "${scenario_repo}/site.yaml"
 
 (
