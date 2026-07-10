@@ -125,6 +125,16 @@ jobs:
             --observed-type press-system-manifest \
             --reconciler press-runtime-sync
 
+      - name: Stage synced runtime for tracked-file validation
+        run: |
+          set -euo pipefail
+          git add -A -- \
+            index.html \
+            index_editor.html \
+            index_editor_preview.html \
+            assets \
+            press-system-lock.json
+
       - name: Validate sync script
         run: |
           bash scripts/test-sync-from-press-release.sh
