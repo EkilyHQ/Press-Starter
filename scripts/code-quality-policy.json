@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "scope": "YAP-owned repository tooling and workflows; synchronized Press runtime and starter content are excluded",
+  "eslint": {
+    "profile": "@eslint/js recommended",
+    "scope": ["scripts/**/*.js", "scripts/**/*.mjs"],
+    "baseline": {
+      "decision": "enforced-zero-baseline",
+      "observedDiagnostics": 0,
+      "excludedRules": [],
+      "probeCommand": "node scripts/probe-eslint-debt.mjs"
+    },
+    "inlineConfiguration": {
+      "decision": "forbidden",
+      "mechanism": "linterOptions.noInlineConfig",
+      "regressionCommand": "node scripts/test-eslint-policy.mjs",
+      "policy": "Source comments cannot disable or reconfigure lint rules; a directive beside a real no-undef violation must leave that violation unsuppressed."
+    },
+    "noGrowth": {
+      "mechanism": "zero-baseline",
+      "command": "eslint \"scripts/**/*.{js,mjs}\" --max-warnings 0",
+      "policy": "Every @eslint/js recommended diagnostic in YAP-owned JavaScript tooling fails CI; synchronized Press runtime assets are outside this repository-owned gate."
+    }
+  },
+  "prettier": {
+    "baseline": {
+      "file": "scripts/prettier-baseline.json",
+      "initialFiles": 4,
+      "observedAtCommit": "8e2fa37fc6c4bac5a8efb90f97533d7dd4b40a05"
+    },
+    "scope": "Root quality configuration, .github/workflows YAML, and Prettier-supported files under scripts/",
+    "excludedFiles": [
+      ".nojekyll",
+      "README.md",
+      "index.html",
+      "index_editor.html",
+      "index_editor_preview.html",
+      "press-system-lock.json",
+      "site.yaml"
+    ],
+    "excludedPrefixes": ["assets/", "dist/", "node_modules/", "wwwroot/"],
+    "noGrowth": {
+      "mechanism": "merge-base-shrinking-file-baseline",
+      "baseRefEnvironmentVariable": "CODE_QUALITY_BASE_REF",
+      "headShaEnvironmentVariable": "CODE_QUALITY_HEAD_SHA",
+      "policy": "New YAP-owned tooling files must pass Prettier. A changed legacy tooling file must be formatted and removed from the baseline; only exact-content renames may transfer baseline ownership."
+    }
+  }
+}
